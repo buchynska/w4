@@ -1,43 +1,56 @@
 import cx_Oracle
 
-from dao.db import OracleDb
 
+class OracleDb(object):
 
-class UserHelper:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+            try:
+                connection = cx_Oracle.connect('"vlad"', 'ticheter', 'localhost:1521/xe')
+                cursor = connection.cursor()
+
+                cursor.execute('SELECT * FROM v$version')
+                db_version = cursor.fetchone()
+
+                print("New connection to {} created".format(db_version[0]))
+
+                OracleDb._instance.connection = connection
+                OracleDb._instance.cursor = cursor
+
+            except Exception as error:
+                print('Error: connection not established {}'.format(error))
+
+        else:
+            print('Connection already established')
+
+        return cls._instance
+
 
     def __init__(self):
-        self.db = OracleDb()
+        self.connection = self._instance.connection
+        self.cursor = self._instance.cursor
+
+
+    def execute(self, query):
+        try:
+            result = self.cursor.execute(query)
+        except Exception as error:
+            print('error execting query "{}", error: {}'.format(query, error))
+            return None
+        else:
+            return result
+
+    def __del__(self):
+        self.cursor.close()
+        self.connection.close()
 
 
 
-    def newUser(self, nameStudent,ageStudent):
-
-        cursor = self.db.cursor
-
-        name = cursor.var(cx_Oracle.STRING)
-        status = cursor.var(cx_Oracle.STRING)
-
-        cursor.callproc("std.new_student", [name, status, nameStudent, ageStudent])
-
-        return name.getvalue(), status.getvalue()
-
-    def deleteStudent(self,nameStudent):
-        cursor = self.db.cursor
-
-        status = cursor.var(cx_Oracle.STRING)
-        cursor.callproc("std.delete_student", [status, nameStudent])
-
-        return status.getvalue()
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-
-    helper = UserHelper()
-    helper.newUser('hi','33')
+if __name__=="__main__":
+    db = OracleDb()
+    db = OracleDb()
+    db = OracleDb()
+    db = OracleDb()
